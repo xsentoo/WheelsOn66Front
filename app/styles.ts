@@ -195,6 +195,9 @@ const styles = StyleSheet.create({
   alignItems: 'flex-end',
   width: '100%',
 },
+background: {
+  flex: 1,
+},
 });
 
 export default styles;

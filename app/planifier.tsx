@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Switch, ScrollView, Alert, TextInput } from 'react-native';
+import {
+  View, Text, Button, Switch, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import planifierStyles from './planifierStyles'; // adapte le chemin
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import planifierStyles from './planifierStyles';
 
 export default function PlanifierVoyage() {
   const router = useRouter();
@@ -15,19 +17,43 @@ export default function PlanifierVoyage() {
   const [paysDepart, setPaysDepart] = useState('');
   const [destinations, setDestinations] = useState<any[]>([]);
 
+  const [roadTrips, setRoadTrips] = useState<any[]>([]);
+  const [selectedRoadTrip, setSelectedRoadTrip] = useState('');
+
   const fetchDestinations = async () => {
     try {
       const res = await fetch('http://192.168.0.10:5001/api/destinations');
       const data = await res.json();
       setDestinations(data);
-    } catch (err) {
+    } catch {
       Alert.alert('Erreur', 'Impossible de charger les destinations');
+    }
+  };
+
+  const fetchRoadTrips = async (destName: string) => {
+    if (!destName) {
+      setRoadTrips([]);
+      setSelectedRoadTrip('');
+      return;
+    }
+    try {
+      const res = await fetch(`http://192.168.0.10:5001/api/roadtrips?destination=${encodeURIComponent(destName)}`);
+      const data = await res.json();
+      setRoadTrips(data);
+      setSelectedRoadTrip('');
+    } catch {
+      setRoadTrips([]);
+      Alert.alert('Erreur', 'Impossible de charger les road trips');
     }
   };
 
   useEffect(() => {
     fetchDestinations();
   }, []);
+
+  useEffect(() => {
+    fetchRoadTrips(destination);
+  }, [destination]);
 
   const handleSubmit = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -36,16 +62,14 @@ export default function PlanifierVoyage() {
     try {
       const res = await fetch('http://192.168.0.10:5001/api/trips/plan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           destination,
           days: Number(jours),
           people: Number(personnes),
           rentCar: louerVoiture,
           departure: paysDepart,
+          roadTripId: selectedRoadTrip,
         }),
       });
 
@@ -60,68 +84,97 @@ export default function PlanifierVoyage() {
   };
 
   return (
-    <ScrollView contentContainerStyle={planifierStyles.container}>
-      <Text style={planifierStyles.title}>Planifier mon voyage</Text>
-
-      <Text style={planifierStyles.label}>Choisissez une destination</Text>
-      <Picker
-        selectedValue={destination}
-        onValueChange={(value: string) => setDestination(value)}
-        style={{
-          color: '#fff',
-          backgroundColor: '#1a2335',
-          borderRadius: 10,
-          height: 45,
-          paddingLeft: 8,
-          marginBottom: 12,
-        }}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#0e1524' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={planifierStyles.container}
+        keyboardShouldPersistTaps="handled"
       >
-        <Picker.Item label="-- Choisir --" value="" />
-        {destinations.map((d) => (
-          <Picker.Item key={d._id} label={d.name} value={d.name} />
-        ))}
-      </Picker>
+        <Text style={planifierStyles.title}>Planifier mon voyage</Text>
 
-      <Text style={planifierStyles.label}>Nombre de jours</Text>
-      <TextInput
-        value={jours}
-        onChangeText={text => {
-          // Empêche les caractères non numériques
-          const onlyNumbers = text.replace(/[^0-9]/g, '');
-          setJours(onlyNumbers);
-        }}
-        keyboardType="numeric"
-        style={planifierStyles.input}
-        placeholder="ex : 7"
-        maxLength={2}
-      />
+        <Text style={planifierStyles.label}>Choisissez une destination</Text>
+        <View style={[planifierStyles.picker, { height: Platform.OS === 'ios' ? 180 : 50 }]}>
+          <Picker
+            selectedValue={destination}
+            onValueChange={setDestination}
+            mode="dropdown"
+            style={{ color: '#fff' }}
+          >
+            <Picker.Item label="-- Choisir --" value="" />
+            {destinations.map(d => (
+              <Picker.Item key={d._id} label={d.name} value={d.name} />
+            ))}
+          </Picker>
+        </View>
 
-      <Text style={planifierStyles.label}>Nombre de personnes</Text>
-      <TextInput
-        value={personnes}
-        onChangeText={text => {
-          const onlyNumbers = text.replace(/[^0-9]/g, '');
-          setPersonnes(onlyNumbers);
-        }}
-        keyboardType="numeric"
-        style={planifierStyles.input}
-        placeholder="ex : 4"
-        maxLength={2}
-      />
+        {roadTrips.length > 0 && (
+          <>
+            <Text style={planifierStyles.label}>Choisissez un road trip</Text>
+            <View style={[planifierStyles.picker, { height: Platform.OS === 'ios' ? 180 : 50 }]}>
+              <Picker
+                selectedValue={selectedRoadTrip}
+                onValueChange={setSelectedRoadTrip}
+                mode="dropdown"
+                style={{ color: '#fff' }}
+              >
+                <Picker.Item label="-- Choisir --" value="" />
+                {roadTrips.map(rt => (
+                  <Picker.Item key={rt._id} label={rt.name} value={rt._id} />
+                ))}
+              </Picker>
+            </View>
+          </>
+        )}
 
-      <View style={planifierStyles.switchRow}>
-        <Text style={planifierStyles.label}>Louer une voiture</Text>
-        <Switch value={louerVoiture} onValueChange={setLouerVoiture} />
-      </View>
+        {selectedRoadTrip && roadTrips.length > 0 && (
+          <View style={{ marginBottom: 16 }}>
+            <Text style={[planifierStyles.label, { fontStyle: 'italic' }]}>Résumé du road trip :</Text>
+            <Text style={{ color: '#ccc' }}>
+              {roadTrips.find(rt => rt._id === selectedRoadTrip)?.description || ''}
+            </Text>
+          </View>
+        )}
 
-      <Text style={planifierStyles.label}>Pays ou aéroport de départ</Text>
-      <TextInput
-        value={paysDepart}
-        onChangeText={setPaysDepart}
-        style={planifierStyles.input}
-      />
+        <Text style={planifierStyles.label}>Nombre de jours</Text>
+        <TextInput
+          value={jours}
+          onChangeText={text => setJours(text.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          style={planifierStyles.input}
+          placeholder="ex : 7"
+          maxLength={2}
+          placeholderTextColor="#888"
+        />
 
-      <Button title="Valider" onPress={handleSubmit} color="#27ae60" />
-    </ScrollView>
+        <Text style={planifierStyles.label}>Nombre de personnes</Text>
+        <TextInput
+          value={personnes}
+          onChangeText={text => setPersonnes(text.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          style={planifierStyles.input}
+          placeholder="ex : 4"
+          maxLength={2}
+          placeholderTextColor="#888"
+        />
+
+        <View style={planifierStyles.switchRow}>
+          <Text style={planifierStyles.label}>Louer une voiture</Text>
+          <Switch value={louerVoiture} onValueChange={setLouerVoiture} />
+        </View>
+
+        <Text style={planifierStyles.label}>Pays ou aéroport de départ</Text>
+        <TextInput
+          value={paysDepart}
+          onChangeText={setPaysDepart}
+          style={planifierStyles.input}
+          placeholderTextColor="#888"
+        />
+
+        <Button title="Valider" onPress={handleSubmit} color="#27ae60" />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
