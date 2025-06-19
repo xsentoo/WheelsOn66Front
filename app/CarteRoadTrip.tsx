@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, Alert, ActivityIndicator } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
@@ -10,7 +10,7 @@ export default function CarteRoadTrip() {
   const [tripId, setTripId] = useState<string | null>(null);
   const router = useRouter();
 
-  // Fetch le dernier trip au montage (récupère customStops OU roadTripId.stops)
+  // Fetch le dernier trip au montage (customStops ou roadTripId.stops)
   useEffect(() => {
     const fetchTrip = async () => {
       const token = await AsyncStorage.getItem('token');
@@ -22,10 +22,15 @@ export default function CarteRoadTrip() {
         const data = await res.json();
         setTripId(data.trip._id);
 
-        // Utilise customStops si dispo, sinon roadTripId.stops
+        // Formatage des stops :
         let _stops = [];
         if (data.trip.customStops && data.trip.customStops.length > 0) {
-          _stops = data.trip.customStops;
+          _stops = data.trip.customStops.map((s: any) => ({
+            name: s.name,
+            latitude: s.latitude ?? s.coordinates?.lat ?? null,
+            longitude: s.longitude ?? s.coordinates?.lng ?? null,
+            description: s.description ?? '',
+          }));
         } else if (
           data.trip.roadTripId &&
           data.trip.roadTripId.stops &&
@@ -47,19 +52,19 @@ export default function CarteRoadTrip() {
     fetchTrip();
   }, []);
 
-  // Centrage sur la première étape ou coordonnées par défaut
+  // Région centrée sur le premier stop
   const region = stops.length
     ? {
-        latitude: stops[0].latitude || 48.8588443,
-        longitude: stops[0].longitude || 2.2943506,
-        latitudeDelta: 5,
-        longitudeDelta: 5,
+        latitude: stops[0].latitude || 7.2906, // Kandy par défaut si rien
+        longitude: stops[0].longitude || 80.6337,
+        latitudeDelta: 3,
+        longitudeDelta: 3,
       }
     : {
-        latitude: 48.8588443,
-        longitude: 2.2943506,
-        latitudeDelta: 5,
-        longitudeDelta: 5,
+        latitude: 7.2906,
+        longitude: 80.6337,
+        latitudeDelta: 3,
+        longitudeDelta: 3,
       };
 
   // Ajouter une étape en cliquant sur la carte
@@ -83,7 +88,7 @@ export default function CarteRoadTrip() {
     setStops(newStops);
   };
 
-  // Supprimer un marker
+  // Supprimer un marker (clic sur bulle)
   const handleDeleteStop = (index: number) => {
     const newStops = stops.filter((_, i) => i !== index);
     setStops(newStops);
@@ -92,6 +97,7 @@ export default function CarteRoadTrip() {
   // Sauvegarder dans le backend
   const handleSave = async () => {
     const token = await AsyncStorage.getItem('token');
+    // On sauvegarde avec latitude/longitude pour customStops
     try {
       const res = await fetch('http://192.168.0.10:5001/api/trips/latest/stops', {
         method: 'PUT',
@@ -106,11 +112,29 @@ export default function CarteRoadTrip() {
     }
   };
 
+  // Polyline pour afficher l’itinéraire
+  const polylineCoords = stops
+    .filter(s => s.latitude && s.longitude)
+    .map(s => ({ latitude: s.latitude, longitude: s.longitude }));
+
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
   return (
     <View style={{ flex: 1 }}>
-      <MapView style={{ flex: 1 }} initialRegion={region} onPress={handleMapPress}>
+      <MapView
+        style={{ flex: 1 }}
+        initialRegion={region}
+        onPress={handleMapPress}
+      >
+        {/* Affiche l’itinéraire */}
+        {polylineCoords.length >= 2 && (
+          <Polyline
+            coordinates={polylineCoords}
+            strokeColor="#27ae60"
+            strokeWidth={4}
+          />
+        )}
+        {/* Markers pour chaque arrêt */}
         {stops.map((stop, idx) =>
           stop.latitude && stop.longitude ? (
             <Marker
@@ -127,7 +151,9 @@ export default function CarteRoadTrip() {
       </MapView>
       <Button title="Sauvegarder" onPress={handleSave} />
       <Text style={{ textAlign: 'center', color: '#aaa', marginVertical: 5 }}>
-        Appuie sur un marker puis sur sa bulle pour le supprimer, ou ajoute un arrêt en cliquant sur la carte.
+        • Clique sur la carte pour ajouter un arrêt{'\n'}
+        • Fais un appui long sur un marker pour le déplacer{'\n'}
+        • Clique sur une bulle marker pour supprimer
       </Text>
       {stops.length === 0 && (
         <Text style={{ textAlign: 'center', color: 'red', marginTop: 8 }}>
