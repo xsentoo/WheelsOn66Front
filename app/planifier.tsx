@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Button, Switch, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform,
+  View, Text, Button, Switch, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
@@ -14,12 +14,11 @@ export default function PlanifierVoyage() {
   const [jours, setJours] = useState('');
   const [personnes, setPersonnes] = useState('');
   const [louerVoiture, setLouerVoiture] = useState(false);
-  const [paysDepart, setPaysDepart] = useState('');
   const [destinations, setDestinations] = useState<any[]>([]);
-
   const [roadTrips, setRoadTrips] = useState<any[]>([]);
   const [selectedRoadTrip, setSelectedRoadTrip] = useState('');
 
+  // Chargement des destinations
   const fetchDestinations = async () => {
     try {
       const res = await fetch('http://192.168.0.10:5001/api/destinations');
@@ -30,6 +29,7 @@ export default function PlanifierVoyage() {
     }
   };
 
+  // Chargement des roadtrips selon destination
   const fetchRoadTrips = async (destName: string) => {
     if (!destName) {
       setRoadTrips([]);
@@ -47,18 +47,15 @@ export default function PlanifierVoyage() {
     }
   };
 
-  useEffect(() => {
-    fetchDestinations();
-  }, []);
-
-  useEffect(() => {
-    fetchRoadTrips(destination);
-  }, [destination]);
+  useEffect(() => { fetchDestinations(); }, []);
+  useEffect(() => { fetchRoadTrips(destination); }, [destination]);
 
   const handleSubmit = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return Alert.alert('Erreur', 'Utilisateur non authentifié');
-
+    if (!destination || !jours || !personnes) {
+      return Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+    }
     try {
       const res = await fetch('http://192.168.0.10:5001/api/trips/plan', {
         method: 'POST',
@@ -68,14 +65,11 @@ export default function PlanifierVoyage() {
           days: Number(jours),
           people: Number(personnes),
           rentCar: louerVoiture,
-          departure: paysDepart,
           roadTripId: selectedRoadTrip,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erreur');
-
       Alert.alert('Succès', 'Voyage planifié avec succès');
       router.push('/home');
     } catch (err: any) {
@@ -89,10 +83,13 @@ export default function PlanifierVoyage() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <ScrollView
-        contentContainerStyle={planifierStyles.container}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={planifierStyles.container} keyboardShouldPersistTaps="handled">
+        
+        {/* --- BOUTON RETOUR --- */}
+        <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 14, marginTop: 6, alignSelf: 'flex-start', padding: 4 }}>
+          <Text style={{ color: '#27ae60', fontWeight: 'bold', fontSize: 16 }}>{'< Retour'}</Text>
+        </TouchableOpacity>
+        
         <Text style={planifierStyles.title}>Planifier mon voyage</Text>
 
         <Text style={planifierStyles.label}>Choisissez une destination</Text>
@@ -165,15 +162,8 @@ export default function PlanifierVoyage() {
           <Switch value={louerVoiture} onValueChange={setLouerVoiture} />
         </View>
 
-        <Text style={planifierStyles.label}>Pays ou aéroport de départ</Text>
-        <TextInput
-          value={paysDepart}
-          onChangeText={setPaysDepart}
-          style={planifierStyles.input}
-          placeholderTextColor="#888"
-        />
-
         <Button title="Valider" onPress={handleSubmit} color="#27ae60" />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
