@@ -13,7 +13,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     console.log('🟡 handleLogin lancé');
     try {
-      const res = await fetch('http://192.168.0.10:5001/api/auth/login', {
+      const res = await fetch('http://10.92.4.186:5001/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

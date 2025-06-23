@@ -13,7 +13,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     try {
-      const res = await fetch('http://192.168.0.10:5001/api/auth/register', {
+      const res = await fetch('http://10.92.4.186:5001/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }), // ← ✅ envoyer le nom !

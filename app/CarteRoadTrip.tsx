@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Button, Alert, ActivityIndicator, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Alert, ActivityIndicator, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, Linking, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -20,39 +20,34 @@ export default function CarteRoadTrip() {
   const mapRef = useRef<MapView>(null);
   const router = useRouter();
 
-  // Fetch trip au mount
   useEffect(() => {
     const fetchTrip = async () => {
       const token = await AsyncStorage.getItem('token');
       try {
-        const res = await fetch('http://192.168.0.10:5001/api/trips/latest', {
+        const res = await fetch('http://10.92.4.186:5001/api/trips/latest', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Impossible de récupérer le road trip');
         const data = await res.json();
-        // Format des étapes
+
         let _stops = [];
-        if (data.trip.customStops && data.trip.customStops.length > 0) {
+        if (data.trip.customStops?.length > 0) {
           _stops = data.trip.customStops.map((s: any) => ({
             name: s.name,
-            latitude: s.latitude ?? s.coordinates?.lat ?? null,
-            longitude: s.longitude ?? s.coordinates?.lng ?? null,
+            latitude: s.latitude ?? s.coordinates?.lat,
+            longitude: s.longitude ?? s.coordinates?.lng,
             description: s.description ?? '',
           }));
-        } else if (
-          data.trip.roadTripId &&
-          data.trip.roadTripId.stops &&
-          data.trip.roadTripId.stops.length > 0
-        ) {
+        } else if (data.trip.roadTripId?.stops?.length > 0) {
           _stops = data.trip.roadTripId.stops.map((s: any) => ({
             name: s.name,
-            latitude: s.coordinates?.lat ?? null,
-            longitude: s.coordinates?.lng ?? null,
+            latitude: s.coordinates?.lat,
+            longitude: s.coordinates?.lng,
             description: s.description ?? '',
           }));
         }
+
         setStops(_stops);
-        // Centrage sur premier arrêt si dispo
         if (_stops.length) {
           setRegion({
             latitude: _stops[0].latitude,
@@ -69,12 +64,10 @@ export default function CarteRoadTrip() {
     fetchTrip();
   }, []);
 
-  // Polyline pour afficher l’itinéraire
   const polylineCoords = stops
     .filter(s => s.latitude && s.longitude)
     .map(s => ({ latitude: s.latitude, longitude: s.longitude }));
 
-  // Ajout étape
   const handleMapPress = (e: any) => {
     const coord = e.nativeEvent.coordinate;
     setStops([
@@ -85,9 +78,10 @@ export default function CarteRoadTrip() {
         longitude: coord.longitude,
       },
     ]);
+    setSelectedIndex(null);
+    setShowRename(false);
   };
 
-  // Déplacement marker
   const handleMarkerDragEnd = (index: number, e: any) => {
     const coord = e.nativeEvent.coordinate;
     const newStops = [...stops];
@@ -95,21 +89,19 @@ export default function CarteRoadTrip() {
     setStops(newStops);
   };
 
-  // Suppression marker
   const handleDeleteStop = (index: number) => {
-    setStops(stops.filter((_, i) => i !== index));
+    setStops(prev => prev.filter((_, i) => i !== index));
     setSelectedIndex(null);
     setShowRename(false);
   };
 
-  // Sauvegarde
   const handleSave = async () => {
     const token = await AsyncStorage.getItem('token');
     try {
       const stopsToSave = stops.map(({ name, latitude, longitude, description }) => ({
         name, latitude, longitude, description,
       }));
-      const res = await fetch('http://192.168.0.10:5001/api/trips/latest/stops', {
+      const res = await fetch('http://10.92.4.186:5001/api/trips/latest/stops', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ stops: stopsToSave }),
@@ -122,7 +114,6 @@ export default function CarteRoadTrip() {
     }
   };
 
-  // Zoom in/out limité
   const handleZoom = (incr: number) => {
     setZoom(prev => {
       let next = prev + incr;
@@ -137,7 +128,6 @@ export default function CarteRoadTrip() {
     });
   };
 
-  // Recentrer sur 1er arrêt
   const handleRecenter = () => {
     if (stops.length > 0) {
       mapRef.current?.animateToRegion({
@@ -149,7 +139,6 @@ export default function CarteRoadTrip() {
     }
   };
 
-  // Renommer un arrêt
   const handleRename = () => {
     if (selectedIndex !== null && editName.trim()) {
       const newStops = [...stops];
@@ -161,14 +150,53 @@ export default function CarteRoadTrip() {
     }
   };
 
+  const handleOpenSingleStop = (stop: any) => {
+    if (!stop) return;
+    let url = '';
+    if (Platform.OS === 'ios') {
+      url = `http://maps.apple.com/?daddr=${stop.latitude},${stop.longitude}&dirflg=d`;
+    } else {
+      url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${stop.latitude},${stop.longitude}`;
+    }
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Erreur', 'Impossible d’ouvrir l’application Maps.');
+    });
+  };
+
+  const handleOpenFullItinerary = () => {
+    if (stops.length === 0) {
+      Alert.alert('Erreur', 'Aucune étape à afficher.');
+      return;
+    }
+    if (Platform.OS === 'ios') {
+      let url = `http://maps.apple.com/?saddr=${stops[0].latitude},${stops[0].longitude}`;
+      if (stops.length > 1) {
+        url += `&daddr=`;
+        url += stops
+          .slice(1)
+          .map(s => `${s.latitude},${s.longitude}`)
+          .join('+to:');
+      }
+      Linking.openURL(url);
+    } else {
+      let url = `https://www.google.com/maps/dir/?api=1&travelmode=driving`;
+      url += `&origin=${stops[0].latitude},${stops[0].longitude}`;
+      url += `&destination=${stops[stops.length - 1].latitude},${stops[stops.length - 1].longitude}`;
+      if (stops.length > 2) {
+        const waypoints = stops
+          .slice(1, -1)
+          .map(s => `${s.latitude},${s.longitude}`)
+          .join('|');
+        url += `&waypoints=${encodeURIComponent(waypoints)}`;
+      }
+      Linking.openURL(url);
+    }
+  };
+
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={{ flex: 1 }}>
         <MapView
           ref={mapRef}
@@ -178,11 +206,7 @@ export default function CarteRoadTrip() {
           onPress={handleMapPress}
         >
           {polylineCoords.length >= 2 && (
-            <Polyline
-              coordinates={polylineCoords}
-              strokeColor="#27ae60"
-              strokeWidth={4}
-            />
+            <Polyline coordinates={polylineCoords} strokeColor="#27ae60" strokeWidth={4} />
           )}
           {stops.map((stop, idx) =>
             stop.latitude && stop.longitude ? (
@@ -197,54 +221,124 @@ export default function CarteRoadTrip() {
                   setSelectedIndex(idx);
                   setShowRename(false);
                 }}
+                onCalloutPress={() => {
+                  setSelectedIndex(idx);
+                  setShowRename(false);
+                }}
               />
             ) : null
           )}
         </MapView>
-        {/* Contrôles carte */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', margin: 6 }}>
-          <TouchableOpacity onPress={() => handleZoom(1)} style={{ marginHorizontal: 6, backgroundColor: '#222', borderRadius: 20, padding: 8 }}>
-            <Text style={{ fontSize: 18, color: '#fff' }}>＋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleZoom(-1)} style={{ marginHorizontal: 6, backgroundColor: '#222', borderRadius: 20, padding: 8 }}>
-            <Text style={{ fontSize: 18, color: '#fff' }}>－</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleRecenter} style={{ marginHorizontal: 6, backgroundColor: '#222', borderRadius: 20, padding: 8 }}>
-            <Image source={{ uri: "https://cdn-icons-png.flaticon.com/512/287/287221.png" }} style={{ width: 24, height: 24 }} />
-          </TouchableOpacity>
-          {/* Boutons si marker sélectionné */}
-          {selectedIndex !== null && (
-            <>
-              <TouchableOpacity
-                style={{ backgroundColor: "#27ae60", borderRadius: 20, padding: 8, marginLeft: 6 }}
-                onPress={() => {
-                  setEditName(stops[selectedIndex].name);
-                  setShowRename(true);
-                }}
-              >
-                <Text style={{ color: "#fff" }}>Renommer</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ backgroundColor: "#e74c3c", borderRadius: 20, padding: 8, marginLeft: 6 }}
-                onPress={() => handleDeleteStop(selectedIndex)}
-              >
-                <Text style={{ color: "#fff" }}>Supprimer</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-        {/* Zone de renommage bien placée */}
-        {showRename && selectedIndex !== null && (
-          <View style={{
+
+        {/* Barre flottante de boutons + sauvegarder */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            left: 16,
+            right: 16,
+            backgroundColor: '#fff',
+            borderRadius: 20,
+            shadowColor: '#000',
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+            elevation: 10,
+            paddingVertical: 12,
+            paddingHorizontal: 12,
             flexDirection: 'row',
-            justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: "#eee",
-            padding: 8,
-            marginHorizontal: 16,
-            borderRadius: 8,
-            marginBottom: 10
-          }}>
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ alignItems: 'center', flexGrow: 1 }}
+          >
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#2980b9",
+                borderRadius: 18,
+                paddingVertical: 10,
+                paddingHorizontal: 18,
+                marginRight: 10,
+              }}
+              onPress={handleOpenFullItinerary}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Itinéraire Maps</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleZoom(1)} style={{ marginHorizontal: 4, backgroundColor: '#222', borderRadius: 18, padding: 10 }}>
+              <Text style={{ fontSize: 18, color: '#fff' }}>＋</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleZoom(-1)} style={{ marginHorizontal: 4, backgroundColor: '#222', borderRadius: 18, padding: 10 }}>
+              <Text style={{ fontSize: 18, color: '#fff' }}>－</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleRecenter} style={{ marginHorizontal: 4, backgroundColor: '#fff', borderRadius: 18, padding: 10, borderWidth: 1, borderColor: '#aaa' }}>
+              <Image source={{ uri: "https://cdn-icons-png.flaticon.com/512/287/287221.png" }} style={{ width: 26, height: 26 }} />
+            </TouchableOpacity>
+            {selectedIndex !== null && stops[selectedIndex] && (
+              <>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#27ae60",
+                    borderRadius: 18,
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    marginLeft: 8,
+                  }}
+                  onPress={() => {
+                    setEditName(stops[selectedIndex].name);
+                    setShowRename(true);
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontSize: 15 }}>Renommer</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#e74c3c",
+                    borderRadius: 18,
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    marginLeft: 8,
+                  }}
+                  onPress={() => handleDeleteStop(selectedIndex)}
+                >
+                  <Text style={{ color: "#fff", fontSize: 15 }}>Supprimer</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#1abc9c",
+                    borderRadius: 18,
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    marginLeft: 8,
+                  }}
+                  onPress={() => handleOpenSingleStop(stops[selectedIndex])}
+                >
+                  <Text style={{ color: "#fff", fontSize: 15 }}>Arrêt seul</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Sauvegarder */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#3498db",
+                borderRadius: 18,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                marginLeft: 20,
+              }}
+              onPress={handleSave}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Sauvegarder</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {showRename && selectedIndex !== null && (
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: "#eee", padding: 8, marginHorizontal: 16, borderRadius: 8, marginBottom: 10 }}>
             <TextInput
               style={{ backgroundColor: "#fff", flex: 1, borderRadius: 8, paddingHorizontal: 8, marginRight: 6 }}
               value={editName}
@@ -252,16 +346,16 @@ export default function CarteRoadTrip() {
               placeholder="Nouveau nom"
               autoFocus
             />
-            <Button title="OK" onPress={handleRename} />
-            <Button title="Annuler" onPress={() => setShowRename(false)} color="#f33" />
+            <TouchableOpacity onPress={handleRename} style={{ marginLeft: 8, backgroundColor: '#27ae60', padding: 8, borderRadius: 8 }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>OK</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowRename(false)} style={{ marginLeft: 8, backgroundColor: '#e74c3c', padding: 8, borderRadius: 8 }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Annuler</Text>
+            </TouchableOpacity>
           </View>
         )}
-        <Button title="Sauvegarder" onPress={handleSave} />
-        <Text style={{ textAlign: 'center', color: '#aaa', marginVertical: 5 }}>
-          • Clique sur la carte pour ajouter un arrêt{'\n'}
-          • Déplace un marker pour ajuster{'\n'}
-          • Sélectionne un marker puis “Renommer” ou “Supprimer”
-        </Text>
+
+        
         {stops.length === 0 && (
           <Text style={{ textAlign: 'center', color: 'red', marginTop: 8 }}>
             Aucune étape à afficher

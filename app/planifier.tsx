@@ -21,7 +21,7 @@ export default function PlanifierVoyage() {
   // Chargement des destinations
   const fetchDestinations = async () => {
     try {
-      const res = await fetch('http://192.168.0.10:5001/api/destinations');
+      const res = await fetch('http://10.92.4.186:5001/api/destinations');
       const data = await res.json();
       setDestinations(data);
     } catch {
@@ -37,7 +37,7 @@ export default function PlanifierVoyage() {
       return;
     }
     try {
-      const res = await fetch(`http://192.168.0.10:5001/api/roadtrips?destination=${encodeURIComponent(destName)}`);
+      const res = await fetch(`http://10.92.4.186:5001/api/roadtrips?destination=${encodeURIComponent(destName)}`);
       const data = await res.json();
       setRoadTrips(data);
       setSelectedRoadTrip('');
@@ -52,28 +52,45 @@ export default function PlanifierVoyage() {
 
   const handleSubmit = async () => {
     const token = await AsyncStorage.getItem('token');
-    if (!token) return Alert.alert('Erreur', 'Utilisateur non authentifié');
+    if (!token) {
+      console.log("❌ Aucun token trouvé");
+      return Alert.alert('Erreur', 'Utilisateur non authentifié');
+    }
+
     if (!destination || !jours || !personnes) {
       return Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
     }
+
+    const dataToSend = {
+      destination,
+      days: Number(jours),
+      people: Number(personnes),
+      rentCar: louerVoiture,
+      roadTripId: selectedRoadTrip || null,
+    };
+
+    console.log("📦 Données envoyées à /api/trips/plan :", dataToSend);
+
     try {
-      const res = await fetch('http://192.168.0.10:5001/api/trips/plan', {
+      const res = await fetch('http://10.92.4.186:5001/api/trips/plan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          destination,
-          days: Number(jours),
-          people: Number(personnes),
-          rentCar: louerVoiture,
-          roadTripId: selectedRoadTrip,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dataToSend),
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Erreur');
+      console.log("✅ Réponse reçue :", data);
+
+      if (!res.ok) throw new Error(data.message || 'Erreur lors de la planification');
+
       Alert.alert('Succès', 'Voyage planifié avec succès');
       router.push('/home');
     } catch (err: any) {
-      Alert.alert('Erreur', err.message);
+      console.log("❌ Erreur dans le fetch /trips/plan :", err);
+      Alert.alert('Erreur', err.message || 'Erreur inconnue');
     }
   };
 
@@ -84,12 +101,11 @@ export default function PlanifierVoyage() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <ScrollView contentContainerStyle={planifierStyles.container} keyboardShouldPersistTaps="handled">
-        
-        {/* --- BOUTON RETOUR --- */}
+
         <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 14, marginTop: 6, alignSelf: 'flex-start', padding: 4 }}>
           <Text style={{ color: '#27ae60', fontWeight: 'bold', fontSize: 16 }}>{'< Retour'}</Text>
         </TouchableOpacity>
-        
+
         <Text style={planifierStyles.title}>Planifier mon voyage</Text>
 
         <Text style={planifierStyles.label}>Choisissez une destination</Text>
