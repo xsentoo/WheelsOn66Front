@@ -237,7 +237,7 @@ export default function CarteRoadTrip() {
             bottom: 30,
             left: 16,
             right: 16,
-            backgroundColor: '#fff',
+            backgroundColor: '#1a2335',
             borderRadius: 20,
             shadowColor: '#000',
             shadowOpacity: 0.12,
