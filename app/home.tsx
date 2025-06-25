@@ -6,18 +6,24 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-const bg = require('../assets/bg.jpg'); 
+import ToggleDarkMode from './component/ToggleDarkMode';
+import CustomButton from './component/CustomButton';
+import useDarkMode from '../hooks/useDarkMode'; // Ajout du hook global
+
+const bgNight = require('../assets/bg.jpg');
+const bgMorning = require('../assets/bgMorning.jpg');
 
 // === STYLES DIRECTEMENT DANS LE FICHIER ===
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: '#0e1524',
+    backgroundColor: '#0B162C',
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#0B162C',
   },
   header: {
     flexDirection: 'row',
@@ -26,10 +32,9 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 54 : 32,
     paddingHorizontal: 24,
     paddingBottom: 18,
-    backgroundColor: 'rgba(30,44,80,0.95)',
+    backgroundColor: '#1C2942',
     borderBottomWidth: 1,
-    borderBottomColor: '#232c4a',
-    marginBottom: 0, // <--- ici
+    borderBottomColor: '#3B556D',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: '#000',
@@ -42,17 +47,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#222e4a',
+    backgroundColor: '#3B556D',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#2ef48c',
+    color: '#5FC2BA',
     fontWeight: 'bold',
     fontSize: 22,
   },
   title: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 26,
     fontWeight: 'bold',
     letterSpacing: 1.2,
@@ -63,80 +68,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingBottom: 12,
+    backgroundColor: '#0B162C',
   },
   mainCard: {
-    backgroundColor: '#1a2335',
+    backgroundColor: '#1C2942',
     borderRadius: 22,
     padding: 22,
-    
-    shadowColor: '#132040',
+    shadowColor: '#3B556D',
     shadowOpacity: 0.21,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 7,
     borderWidth: 1.5,
-    borderColor: '#232c4a',
+    borderColor: '#3B556D',
   },
   tripTitle: {
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 22,
     marginBottom: 4,
     letterSpacing: 0.65,
-    textShadowColor: '#181c36',
+    textShadowColor: '#0B162C',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 5,
   },
   tripSub: {
-    color: '#c2cee9',
+    color: '#5FC2BA',
     marginBottom: 16,
     fontSize: 17,
     letterSpacing: 0.1,
   },
   sectionTitle: {
     fontWeight: 'bold',
-    color: '#47afff',
+    color: '#5FC2BA',
     marginTop: 20,
     marginBottom: 12,
     fontSize: 19,
     letterSpacing: 1,
-    textShadowColor: '#12233f77',
+    textShadowColor: '#3B556D',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
   roadTripBox: {
     marginBottom: 16,
-    backgroundColor: "#232f45",
+    backgroundColor: "#1C2942",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#314060",
+    borderColor: "#3B556D",
   },
   roadTripTitle: {
-    color: "#27ae60",
+    color: "#5FC2BA",
     fontWeight: "bold",
     fontSize: 17,
     marginBottom: 2,
   },
   roadTripDesc: {
-    color: "#aaa",
+    color: "#FFFFFF",
     marginBottom: 4,
     fontSize: 15,
   },
   roadTripStep: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 15,
   },
   noStep: {
-    color: "red",
+    color: "#e74c3c",
     fontSize: 15,
   },
   itemBox: {
-    backgroundColor: '#232f45',
+    backgroundColor: '#1C2942',
     borderRadius: 15,
     padding: 18,
     marginBottom: 21,
-    shadowColor: '#0d0f1a',
+    shadowColor: '#3B556D',
     shadowOpacity: 0.14,
     shadowOffset: { width: 1, height: 3 },
     shadowRadius: 7,
@@ -147,103 +152,112 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 8,
     borderBottomWidth: 0.7,
-    borderBottomColor: '#314060',
+    borderBottomColor: '#3B556D',
     paddingBottom: 9,
   },
   input: {
-    backgroundColor: '#182135',
-    color: '#fff',
+    backgroundColor: '#0B162C',
+    color: '#FFFFFF',
     borderRadius: 10,
     padding: 9,
     fontSize: 17,
     textAlign: 'right',
     borderWidth: 1.5,
-    borderColor: '#273a5a',
-    shadowColor: '#000',
+    borderColor: '#3B556D',
+    shadowColor: '#3B556D',
     shadowOpacity: 0.09,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 2,
   },
   total: {
-    color: '#2ef48c',
+    color: '#5FC2BA',
     fontWeight: 'bold',
     fontSize: 20,
     marginBottom: 24,
     marginTop: 8,
     textAlign: 'right',
     letterSpacing: 0.8,
-    backgroundColor: '#1b2937',
+    backgroundColor: '#1C2942',
     paddingVertical: 11,
     borderRadius: 13,
     paddingHorizontal: 20,
-    shadowColor: '#0c2426',
+    shadowColor: '#3B556D',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 3,
   },
   button: {
-    paddingVertical: 16,
-    borderRadius: 15,
-    marginVertical: 10,
+    paddingVertical: 8, // réduit
+    borderRadius: 10,   // plus petit
+    marginVertical: 6,  // réduit
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2b3a5c',
+    backgroundColor: '#5FC2BA',
     borderWidth: 1,
-    borderColor: '#2b3a5c',
-    shadowColor: '#191e2e',
+    borderColor: '#5FC2BA',
+    shadowColor: '#3B556D',
     shadowOpacity: 0.17,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 7,
     elevation: 2,
   },
   buttonPrimary: {
-    backgroundColor: '#2ef48c',
-    shadowColor: '#2ef48c',
+    backgroundColor: '#5FC2BA',
+    shadowColor: '#5FC2BA',
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    elevation: 8,
-    borderRadius: 22,
+    shadowRadius: 10, // réduit
+    elevation: 5,     // réduit
+    borderRadius: 12, // réduit
     borderWidth: 0,
   },
   buttonSecondary: {
-    backgroundColor: '#348afd',
-    shadowColor: '#348afd',
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 7,
-    borderRadius: 22,
+    backgroundColor: '#3B556D',
+    shadowColor: '#3B556D',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8, // réduit
+    elevation: 4,    // réduit
+    borderRadius: 12, // réduit
     borderWidth: 0,
   },
   buttonDanger: {
     backgroundColor: '#e74c3c',
     shadowColor: '#e74c3c',
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 7,
-    borderRadius: 22,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8, // réduit
+    elevation: 4,    // réduit
+    borderRadius: 12, // réduit
     borderWidth: 0,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 19,
-    letterSpacing: 0.7,
+    fontSize: 15, // réduit
+    letterSpacing: 0.5, // réduit
     textTransform: 'uppercase',
     textShadowColor: '#0007',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    // Pour effet "relief"
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   buttonSpacing: {
     marginBottom: 19,
     marginTop: 8,
   },
+  uniformButton: {
+    minWidth: 220, // largeur minimale identique pour tous
+    height: 48,    // hauteur identique pour tous
+    alignSelf: 'center',
+    marginVertical: 8,
+  },
 });
 
 export default function HomeScreen() {
+  // Remplace ton state darkMode local par le hook global :
+  const { darkMode, toggleDarkMode } = useDarkMode();
+  const isLight = !darkMode;
+
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [trip, setTrip] = useState<any>(null);
@@ -387,6 +401,31 @@ export default function HomeScreen() {
     Alert.alert('Succès', 'Budget mis à jour !');
   };
 
+  // Palette claire pour le light mode
+  const lightPalette = {
+    header: { backgroundColor: '#4a90e2', borderBottomColor: '#b3d7f7' },
+    avatar: { backgroundColor: '#5dade2' },
+    avatarText: { color: '#fff' },
+    title: { color: '#fff' },
+    mainCard: { backgroundColor: 'rgba(255,255,255,0.65)', borderColor: '#b3d7f7', shadowColor: '#4a90e2' },
+    tripTitle: { color: '#223a5e', textShadowColor: '#b3d7f7' },
+    tripSub: { color: '#4a90e2' },
+    sectionTitle: { color: '#4a90e2', textShadowColor: '#b3d7f7' },
+    roadTripBox: { backgroundColor: "#eaf6fb", borderColor: "#b3d7f7" },
+    roadTripTitle: { color: "#4a90e2" },
+    roadTripDesc: { color: "#223a5e" },
+    roadTripStep: { color: "#223a5e" },
+    itemBox: { backgroundColor: '#eaf6fb', shadowColor: '#b3d7f7' },
+    itemRow: { borderBottomColor: '#b3d7f7' },
+    input: { backgroundColor: '#f4f8fb', color: '#223a5e', borderColor: '#b3d7f7', shadowColor: '#b3d7f7' },
+    total: { color: '#4a90e2', backgroundColor: '#eaf6fb', shadowColor: '#b3d7f7' },
+    button: { backgroundColor: '#4a90e2', borderColor: '#4a90e2', shadowColor: '#5dade2' },
+    buttonPrimary: { backgroundColor: '#5dade2', shadowColor: '#5dade2' },
+    buttonSecondary: { backgroundColor: '#4a90e2', shadowColor: '#4a90e2' },
+    buttonDanger: { backgroundColor: '#e74c3c', shadowColor: '#e74c3c' },
+    buttonText: { color: '#fff' },
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -396,18 +435,27 @@ export default function HomeScreen() {
   }
 
   return (
-    <ImageBackground source={bg} style={{ flex: 1 }} resizeMode="cover">
-      {/* Le reste de ton contenu */}
+    <ImageBackground source={darkMode ? bgNight : bgMorning} style={{ flex: 1 }} resizeMode="cover">
       <View style={{ flex: 1 }}>
         {/* HEADER MODERNE */}
-        <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() || "?"}</Text>
+        <View style={[styles.header, isLight && {
+  backgroundColor: '#EBF2FA',
+  borderBottomColor: '#B3D7F7'
+}]}>
+          <View style={[styles.avatar, isLight && { backgroundColor: '#B3D7F7' }]}>
+            <Text style={[styles.avatarText, isLight && { color: '#06668C' }]}>
+              {user?.name?.[0]?.toUpperCase() || "?"}
+            </Text>
           </View>
-          <Text style={styles.title}>Accueil</Text>
-          <TouchableOpacity onPress={() => router.push('/pageProfil')}>
-            <Text style={{ color: '#2ef48c', fontWeight: 'bold', fontSize: 18 }}>Profil</Text>
-          </TouchableOpacity>
+          <Text style={[styles.title, isLight && { color: '#06668C' }]}>Accueil</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* ToggleDarkMode reste */}
+            <ToggleDarkMode darkMode={darkMode} onToggle={toggleDarkMode} />
+            {/* Bouton Profil reste */}
+            <TouchableOpacity onPress={() => router.push('/pageProfil')}>
+              <Text style={{ color: isLight ? '#06668C' : '#2ef48c', fontWeight: 'bold', fontSize: 18 }}>Profil</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -420,64 +468,76 @@ export default function HomeScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {/* CARD PRINCIPALE */}
-            <View style={styles.mainCard}>
-              <Text style={styles.tripTitle}>Bienvenue, {user?.name} 👋</Text>
-              <Text style={styles.tripSub}>Ton email : {user?.email}</Text>
+            <View style={[styles.mainCard, isLight && lightPalette.mainCard]}>
+              <Text style={[styles.tripTitle, isLight && lightPalette.tripTitle]}>
+                Bienvenue, {user?.name} 👋
+              </Text>
+              <Text style={[styles.tripSub, isLight && lightPalette.tripSub]}>
+                Ton email : {user?.email}
+              </Text>
 
               {trip ? (
                 <>
-                  <Text style={styles.tripTitle}>Ton dernier voyage : {trip.destination}</Text>
-                  <Text style={styles.tripSub}>Pour {trip.people} personnes, {trip.days} jours</Text>
+                  <Text style={[styles.tripTitle, isLight && lightPalette.tripTitle]}>
+                    Ton dernier voyage : {trip.destination}
+                  </Text>
+                  <Text style={[styles.tripSub, isLight && lightPalette.tripSub]}>
+                    Pour {trip.people} personnes, {trip.days} jours
+                  </Text>
 
                   {roadTrip ? (
-                    <View style={styles.roadTripBox}>
-                      <Text style={styles.roadTripTitle}>
+                    <View style={[styles.roadTripBox, isLight && lightPalette.roadTripBox]}>
+                      <Text style={[styles.roadTripTitle, isLight && lightPalette.roadTripTitle]}>
                         Road Trip : {roadTrip.name}
                       </Text>
-                      <Text style={styles.roadTripDesc}>
+                      <Text style={[styles.roadTripDesc, isLight && lightPalette.roadTripDesc]}>
                         {roadTrip.description}
                       </Text>
-                      <Text style={{ color: "#bbb", fontWeight: "bold" }}>Étapes :</Text>
+                      <Text style={{ color: isLight ? "#4a90e2" : "#bbb", fontWeight: "bold" }}>Étapes :</Text>
                       {steps?.length > 0 ? steps.map((s, idx) => (
-                        <Text key={idx} style={styles.roadTripStep}>
+                        <Text key={idx} style={[styles.roadTripStep, isLight && lightPalette.roadTripStep]}>
                           - {s.name}
                         </Text>
                       )) : null}
                     </View>
                   ) : null}
 
-                  <Text style={styles.sectionTitle}>Matériel à ramener :</Text>
+                  <Text style={[styles.sectionTitle, isLight && lightPalette.sectionTitle]}>
+                    Matériel à ramener :
+                  </Text>
 
-                  <TouchableOpacity
-                    style={[styles.button, styles.buttonSecondary, { marginBottom: 8 }]}
-                    activeOpacity={0.8}
+                  <CustomButton
+                    label="Ajouter un matériel"
+                    icon="plus"
+                    iconLib="Feather"
+                    color="#3B556D"
                     onPress={handleAddItem}
-                  >
-                    <Text style={styles.buttonText}>+ Ajouter un matériel</Text>
-                  </TouchableOpacity>
+                    style={styles.uniformButton}
+                    isLight={isLight}
+                  />
 
-                  <View style={styles.itemBox}>
+                  <View style={[styles.itemBox, isLight && lightPalette.itemBox]}>
                     {items.map((item, idx) => (
-                      <View key={idx} style={[styles.itemRow, { alignItems: 'center' }]}>
+                      <View key={idx} style={[styles.itemRow, isLight && lightPalette.itemRow, { alignItems: 'center' }]}>
                         <TextInput
-                          style={[styles.input, { flex: 2, marginRight: 4 }]}
+                          style={[styles.input, isLight && lightPalette.input, { flex: 2, marginRight: 4 }]}
                           placeholder="Nom matériel"
-                          placeholderTextColor="#888"
+                          placeholderTextColor={isLight ? "#4a90e2" : "#888"}
                           value={item.name}
                           onChangeText={val => handleItemChange(idx, 'name', val)}
                         />
                         <TextInput
-                          style={[styles.input, { flex: 1, marginRight: 4 }]}
+                          style={[styles.input, isLight && lightPalette.input, { flex: 1, marginRight: 4 }]}
                           placeholder="Qté"
-                          placeholderTextColor="#888"
+                          placeholderTextColor={isLight ? "#4a90e2" : "#888"}
                           keyboardType="numeric"
                           value={item.quantity?.toString() || ''}
                           onChangeText={val => handleItemChange(idx, 'quantity', val)}
                         />
                         <TextInput
-                          style={[styles.input, { flex: 1, marginRight: 4 }]}
+                          style={[styles.input, isLight && lightPalette.input, { flex: 1, marginRight: 4 }]}
                           placeholder="Prix €"
-                          placeholderTextColor="#888"
+                          placeholderTextColor={isLight ? "#4a90e2" : "#888"}
                           keyboardType="numeric"
                           value={item.price?.toString() || ''}
                           onChangeText={val => handleItemChange(idx, 'price', val)}
@@ -489,18 +549,29 @@ export default function HomeScreen() {
                     ))}
                   </View>
 
-                  <Text style={styles.total}>Total : {total.toFixed(2)} €</Text>
+                  <Text style={[styles.total, isLight && lightPalette.total]}>
+                    Total : {total.toFixed(2)} €
+                  </Text>
 
                   <View style={styles.buttonSpacing}>
-                    <TouchableOpacity style={[styles.button, styles.buttonPrimary]} activeOpacity={0.8} onPress={saveBudget}>
-                      <Text style={styles.buttonText}>Sauvegarder le budget</Text>
-                    </TouchableOpacity>
+                    <CustomButton
+                      label="Sauvegarder le budget"
+                      icon="save"
+                      iconLib="Feather"
+                      color="#5FC2BA"
+                       isLight={isLight}
+                      onPress={saveBudget}
+                      style={styles.uniformButton}
+                    />
                   </View>
 
                   <View style={styles.buttonSpacing}>
-                    <TouchableOpacity
-                      style={[styles.button, styles.buttonSecondary]}
-                      activeOpacity={0.8}
+                    <CustomButton
+                      label="Personnaliser le Road Trip"
+                      icon="map"
+                      iconLib="Feather"
+                      color="#5FC2BA"
+                       isLight={isLight}
                       onPress={() => {
                         if (steps?.length > 0) {
                           router.push({
@@ -511,34 +582,43 @@ export default function HomeScreen() {
                           Alert.alert('Aucune étape', 'Ce road trip ne contient aucune étape.');
                         }
                       }}
-                    >
-                      <Text style={styles.buttonText}>Personnaliser le Road Trip</Text>
-                    </TouchableOpacity>
+                      style={styles.uniformButton}
+                    />
                   </View>
                 </>
               ) : (
-                <Text style={{ color: '#fff', marginTop: 24, textAlign: 'center' }}>Aucun voyage planifié.</Text>
+                <Text style={{ color: isLight ? '#223a5e' : '#fff', marginTop: 24, textAlign: 'center' }}>
+                  Aucun voyage planifié.
+                </Text>
               )}
             </View>
 
             <View style={{ height: 24 }} />
 
             <View style={styles.buttonSpacing}>
-              <TouchableOpacity style={[styles.button, styles.buttonPrimary]} activeOpacity={0.8} onPress={() => router.push('/planifier')}>
-                <Text style={styles.buttonText}>Planifier un voyage</Text>
-              </TouchableOpacity>
+              <CustomButton
+                label="Planifier un voyage"
+                icon="calendar"
+                iconLib="Feather"
+                color="#5FC2BA"
+                 isLight={isLight}
+                onPress={() => router.push('/planifier')}
+                style={styles.uniformButton}
+              />
             </View>
 
-            <TouchableOpacity
-              style={[styles.button, styles.buttonDanger]}
-              activeOpacity={0.8}
+            <CustomButton
+              label="Se déconnecter"
+              icon="log-out"
+              iconLib="Feather"
+              color="#e74c3c"
+               isLight={isLight}
               onPress={async () => {
                 await AsyncStorage.removeItem('token');
                 router.replace('/login');
               }}
-            >
-              <Text style={styles.buttonText}>Se déconnecter</Text>
-            </TouchableOpacity>
+              style={styles.uniformButton}
+            />
           </ScrollView>
         </KeyboardAvoidingView>
       </View>

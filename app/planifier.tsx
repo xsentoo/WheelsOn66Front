@@ -1,18 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Button, Switch, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ImageBackground, StyleSheet
+  View, Text, Switch, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ImageBackground, StyleSheet
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import useDarkMode from '../hooks/useDarkMode';
 
 const bg = require('../assets/bg.jpg');
+const bgMorning = require('../assets/bgMorning.jpg');
+
+const lightPalette = {
+  background: { backgroundColor: '#F7FAFC' },
+  header: { backgroundColor: '#EBF2FA', borderBottomColor: '#B3D7F7' },
+  headerTitle: { color: '#06668C' },
+  mainCard: { backgroundColor: '#FFFFFF', borderColor: '#B3D7F7', shadowColor: '#B3D7F7' },
+  title: { color: '#427AA1' },
+  label: { color: '#06668C' },
+  picker: { backgroundColor: '#F4F8FB', borderColor: '#B3D7F7', color: '#223A5E' },
+  input: { backgroundColor: '#F4F8FB', color: '#223A5E', borderColor: '#B3D7F7' },
+  button: { backgroundColor: '#427AA1', borderColor: '#427AA1', shadowColor: '#B3D7F7' },
+  buttonText: { color: '#fff' },
+};
+
+const darkPalette = {
+  background: { backgroundColor: '#0e1524' },
+  header: { backgroundColor: 'rgba(30,44,80,0.95)', borderBottomColor: '#232c4a' },
+  headerTitle: { color: '#fff' },
+  mainCard: { backgroundColor: '#1a2335', borderColor: '#232c4a', shadowColor: '#132040' },
+  title: { color: '#2ef48c' },
+  label: { color: '#2ef48c' },
+  picker: { backgroundColor: '#232b3a', borderColor: '#273a5a', color: '#fff' },
+  input: { backgroundColor: '#182135', color: '#fff', borderColor: '#273a5a' },
+  button: { backgroundColor: '#3B556D', borderColor: '#3B556D', shadowColor: '#191e2e' },
+  buttonText: { color: '#fff' },
+};
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    backgroundColor: '#0e1524',
-  },
+  background: { flex: 1, backgroundColor: '#0e1524' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -129,6 +154,10 @@ const styles = StyleSheet.create({
 });
 
 export default function PlanifierVoyage() {
+  const { darkMode, toggleDarkMode } = useDarkMode();
+  const isLight = !darkMode;
+  const palette = isLight ? lightPalette : darkPalette;
+
   const router = useRouter();
 
   const [destination, setDestination] = useState('');
@@ -211,14 +240,13 @@ export default function PlanifierVoyage() {
   };
 
   return (
-    <ImageBackground source={bg} style={styles.background} resizeMode="cover">
+    <ImageBackground source={isLight ? bgMorning : bg} style={[styles.background, palette.background]} resizeMode="cover">
       <View style={{ flex: 1 }}>
-        <View style={styles.header}>
+        <View style={[styles.header, palette.header]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: '#2ef48c', fontWeight: 'bold', fontSize: 22 }}>{'←'}</Text>
+            <Text style={{ color: isLight ? '#427AA1' : '#2ef48c', fontWeight: 'bold', fontSize: 22 }}>{'←'}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Planifier</Text>
-          <View style={{ width: 38 }} />
+          <Text style={[styles.headerTitle, palette.headerTitle]}>Planifier</Text>
         </View>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -230,16 +258,16 @@ export default function PlanifierVoyage() {
             contentContainerStyle={{ paddingBottom: 60 }}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.mainCard}>
-              <Text style={styles.title}>Planifier mon voyage</Text>
+            <View style={[styles.mainCard, palette.mainCard]}>
+              <Text style={[styles.title, palette.title]}>Planifier mon voyage</Text>
 
-              <Text style={styles.label}>Choisissez une destination</Text>
-              <View style={[styles.picker, { height: Platform.OS === 'ios' ? 180 : 50 }]}>
+              <Text style={[styles.label, palette.label]}>Choisissez une destination</Text>
+              <View style={[styles.picker, palette.picker, { height: Platform.OS === 'ios' ? 180 : 50 }]}>
                 <Picker
                   selectedValue={destination}
                   onValueChange={setDestination}
                   mode="dropdown"
-                  style={{ color: '#fff' }}
+                  style={{ color: palette.picker?.color || '#fff' }}
                 >
                   <Picker.Item label="-- Choisir --" value="" />
                   {destinations.map(d => (
@@ -250,13 +278,13 @@ export default function PlanifierVoyage() {
 
               {roadTrips.length > 0 ? (
                 <>
-                  <Text style={styles.label}>Choisissez un road trip</Text>
-                  <View style={[styles.picker, { height: Platform.OS === 'ios' ? 180 : 50 }]}>
+                  <Text style={[styles.label, palette.label]}>Choisissez un road trip</Text>
+                  <View style={[styles.picker, palette.picker, { height: Platform.OS === 'ios' ? 180 : 50 }]}>
                     <Picker
                       selectedValue={selectedRoadTrip}
                       onValueChange={setSelectedRoadTrip}
                       mode="dropdown"
-                      style={{ color: '#fff' }}
+                      style={{ color: palette.picker?.color || '#fff' }}
                     >
                       <Picker.Item label="-- Choisir --" value="" />
                       {roadTrips.map(rt => (
@@ -269,46 +297,50 @@ export default function PlanifierVoyage() {
 
               {selectedRoadTrip && roadTrips.length > 0 ? (
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={[styles.label, { fontStyle: 'italic' }]}>Résumé du road trip :</Text>
-                  <Text style={{ color: '#ccc' }}>
+                  <Text style={[styles.label, palette.label, { fontStyle: 'italic' }]}>Résumé du road trip :</Text>
+                  <Text style={{ color: isLight ? '#06668C' : '#ccc' }}>
                     {roadTrips.find(rt => rt._id === selectedRoadTrip)?.description || ''}
                   </Text>
                 </View>
               ) : null}
 
-              <Text style={styles.label}>Nombre de jours</Text>
+              <Text style={[styles.label, palette.label]}>Nombre de jours</Text>
               <TextInput
                 value={jours}
                 onChangeText={text => setJours(text.replace(/[^0-9]/g, ''))}
                 keyboardType="numeric"
-                style={styles.input}
+                style={[styles.input, palette.input]}
                 placeholder="ex : 7"
                 maxLength={2}
-                placeholderTextColor="#888"
+                placeholderTextColor={isLight ? "#4a90e2" : "#888"}
               />
 
-              <Text style={styles.label}>Nombre de personnes</Text>
+              <Text style={[styles.label, palette.label]}>Nombre de personnes</Text>
               <TextInput
                 value={personnes}
                 onChangeText={text => setPersonnes(text.replace(/[^0-9]/g, ''))}
                 keyboardType="numeric"
-                style={styles.input}
+                style={[styles.input, palette.input]}
                 placeholder="ex : 4"
                 maxLength={2}
-                placeholderTextColor="#888"
+                placeholderTextColor={isLight ? "#4a90e2" : "#888"}
               />
 
               <View style={styles.switchRow}>
-                <Text style={styles.label}>Louer une voiture</Text>
+                <Text style={[styles.label, palette.label]}>Louer une voiture</Text>
                 <Switch value={louerVoiture} onValueChange={setLouerVoiture} />
               </View>
 
               <TouchableOpacity
-                style={[styles.button, styles.buttonPrimary]}
+                style={[
+                  styles.button,
+                  styles.buttonPrimary,
+                  palette.button
+                ]}
                 activeOpacity={0.8}
                 onPress={handleSubmit}
               >
-                <Text style={{ color: '#1a2335', fontWeight: 'bold', fontSize: 18 }}>Valider</Text>
+                <Text style={[{ fontWeight: 'bold', fontSize: 18 }, palette.buttonText]}>Valider</Text>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </View>
