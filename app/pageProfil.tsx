@@ -175,7 +175,7 @@ export default function PageProfil() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://10.92.4.186:5001/api/user/me', {
+      const res = await fetch('http://192.168.0.18:5001/api/user/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Impossible de charger le profil');
@@ -199,7 +199,7 @@ export default function PageProfil() {
   const handleEditProfile = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://10.92.4.186:5001/api/user/update', {
+      const res = await fetch('http://192.168.0.18:5001/api/user/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: editName, email: editEmail }),
@@ -220,7 +220,7 @@ export default function PageProfil() {
     }
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://10.92.4.186:5001/api/user/password', {
+      const res = await fetch('http://192.168.0.18:5001/api/user/password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ oldPassword: editPassword.old, newPassword: editPassword.new }),
@@ -242,7 +242,7 @@ export default function PageProfil() {
     setSavingStory(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://10.92.4.186:5001/api/trips/story', {
+      const res = await fetch('http://192.168.0.18:5001/api/trips/story', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ tripId, story: tripStory }),
@@ -271,7 +271,7 @@ export default function PageProfil() {
             setDeletingStoryId(tripId);
             try {
               const token = await AsyncStorage.getItem('token');
-              const res = await fetch('http://10.92.4.186:5001/api/trips/story', {
+              const res = await fetch('http://192.168.0.18:5001/api/trips/story', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ tripId, story: '' }),
@@ -304,7 +304,7 @@ export default function PageProfil() {
             setDeletingTripId(tripId);
             try {
               const token = await AsyncStorage.getItem('token');
-              const res = await fetch(`http://10.92.4.186:5001/api/trips/${tripId}`, {
+              const res = await fetch(`http://192.168.0.18:5001/api/trips/${tripId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
               });
@@ -468,25 +468,20 @@ export default function PageProfil() {
                       style={{ alignSelf: 'center' }}
                     />
                     {trip.story && (
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: '#e74c3c',
-                          borderRadius: 8,
-                          padding: 9,
-                          marginTop: 7,
-                          alignItems: 'center',
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          opacity: deletingStoryId === trip._id ? 0.5 : 1,
-                        }}
-                        disabled={deletingStoryId === trip._id}
+                      <CustomButton
+                        label={deletingStoryId === trip._id ? 'Suppression...' : "Supprimer l'histoire"}
+                        icon="trash"
+                        iconLib="Feather"
+                        isLight={isLight}
                         onPress={() => handleDeleteTripStory(trip._id)}
-                      >
-                        <Text style={{ color: '#fff', marginRight: 6, fontSize: 17 }}>🗑️</Text>
-                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>
-                          {deletingStoryId === trip._id ? 'Suppression...' : "Supprimer l'histoire"}
-                        </Text>
-                      </TouchableOpacity>
+                        style={{
+                          alignSelf: 'center',
+                          marginTop: 7,
+                          opacity: deletingStoryId === trip._id ? 0.5 : 1,
+                          // Optionnel : largeur comme les autres boutons
+                        }}
+                        danger // <-- à ajouter dans CustomButton pour gérer la couleur rouge
+                      />
                     )}
                   </>
                 )}

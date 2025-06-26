@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import ToggleDarkMode from './component/ToggleDarkMode';
 import CustomButton from './component/CustomButton';
 import useDarkMode from '../hooks/useDarkMode'; // Ajout du hook global
+import i18n, { setAppLanguage } from './i18n';
 
 const bgNight = require('../assets/bg.jpg');
 const bgMorning = require('../assets/bgMorning.jpg');
@@ -266,24 +267,32 @@ export default function HomeScreen() {
   const [roadTrip, setRoadTrip] = useState<any>(null);
   const [steps, setSteps] = useState<any[]>([]);
   const [destination, setDestination] = useState('');
+  const [lang, setLang] = useState(i18n.locale.startsWith('fr') ? 'fr' : 'en');
+
+  // Quand on change la langue, on met à jour i18n et le state
+  const toggleLang = () => {
+    const nextLang = lang === 'fr' ? 'en' : 'fr';
+    setAppLanguage(nextLang);
+    setLang(nextLang);
+  };
 
   const fetchData = async () => {
     setLoading(true);
     const token = await AsyncStorage.getItem('token');
     if (!token) {
-      Alert.alert('Non autorisé', 'Veuillez vous reconnecter');
+      Alert.alert(i18n.t('error'), i18n.t('not_authorized'));
       router.replace('/login');
       return;
     }
 
     try {
-      const userRes = await fetch('http://10.92.4.186:5001/api/home', {
+      const userRes = await fetch('http://192.168.0.18:5001/api/home', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const userData = await userRes.json();
       setUser(userData);
 
-      const tripRes = await fetch('http://10.92.4.186:5001/api/trips/latest', {
+      const tripRes = await fetch('http://192.168.0.18:5001/api/trips/latest', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const tripData = await tripRes.json();
@@ -296,7 +305,7 @@ export default function HomeScreen() {
             setRoadTrip(tripData.trip.roadTripId);
           } else {
             try {
-              const roadTripRes = await fetch(`http://10.92.4.186:5001/api/roadtrips/${tripData.trip.roadTripId}`);
+              const roadTripRes = await fetch(`http://192.168.0.18:5001/api/roadtrips/${tripData.trip.roadTripId}`);
               const roadTripData = await roadTripRes.json();
               setRoadTrip(roadTripData);
             } catch (e) {
@@ -308,7 +317,7 @@ export default function HomeScreen() {
         }
 
         if (!tripData.trip.items || tripData.trip.items.length === 0) {
-          const itemsRes = await fetch(`http://10.92.4.186:5001/api/items/${encodeURIComponent(tripData.trip.destination)}`);
+          const itemsRes = await fetch(`http://192.168.0.18:5001/api/items/${encodeURIComponent(tripData.trip.destination)}`);
           const itemSuggest = await itemsRes.json();
           const suggested = itemSuggest[0]?.items || [];
           const itemsWithQuantities = suggested.map((item: any) => ({
@@ -319,7 +328,7 @@ export default function HomeScreen() {
 
           setItems(itemsWithQuantities);
 
-          await fetch('http://10.92.4.186:5001/api/trips/latest', {
+          await fetch('http://192.168.0.18:5001/api/trips/latest', {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -369,7 +378,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleAddItem = () => {
-    setItems([...items, { name: '', quantity: 1, price: 0 }]);
+    setItems([{ name: '', quantity: 1, price: 0 }, ...items]);
   };
 
   const handleItemChange = (idx: number, key: string, value: string) => {
@@ -390,7 +399,7 @@ export default function HomeScreen() {
 
   const saveBudget = async () => {
     const token = await AsyncStorage.getItem('token');
-    await fetch('http://10.92.4.186:5001/api/trips/latest', {
+    await fetch('http://192.168.0.18:5001/api/trips/latest', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -398,7 +407,7 @@ export default function HomeScreen() {
       },
       body: JSON.stringify({ items, totalBudget: total }),
     });
-    Alert.alert('Succès', 'Budget mis à jour !');
+    Alert.alert(i18n.t('success'), i18n.t('budget_updated'));
   };
 
   // Palette claire pour le light mode
@@ -439,21 +448,37 @@ export default function HomeScreen() {
       <View style={{ flex: 1 }}>
         {/* HEADER MODERNE */}
         <View style={[styles.header, isLight && {
-  backgroundColor: '#EBF2FA',
-  borderBottomColor: '#B3D7F7'
-}]}>
+          backgroundColor: '#EBF2FA',
+          borderBottomColor: '#B3D7F7'
+        }]}>
           <View style={[styles.avatar, isLight && { backgroundColor: '#B3D7F7' }]}>
             <Text style={[styles.avatarText, isLight && { color: '#06668C' }]}>
               {user?.name?.[0]?.toUpperCase() || "?"}
             </Text>
           </View>
-          <Text style={[styles.title, isLight && { color: '#06668C' }]}>Accueil</Text>
+          <Text style={[styles.title, isLight && { color: '#06668C' }]}>{i18n.t('home')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {/* ToggleDarkMode reste */}
             <ToggleDarkMode darkMode={darkMode} onToggle={toggleDarkMode} />
-            {/* Bouton Profil reste */}
+            <TouchableOpacity
+              onPress={toggleLang}
+              style={{
+                marginHorizontal: 10,
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                paddingVertical: 4,
+                paddingHorizontal: 12,
+                borderWidth: 1,
+                borderColor: '#b3d7f7',
+              }}
+            >
+              <Text style={{ color: '#427AA1', fontWeight: 'bold' }}>
+                {lang === 'fr' ? 'FR 🇫🇷' : 'EN 🇬🇧'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/pageProfil')}>
-              <Text style={{ color: isLight ? '#06668C' : '#2ef48c', fontWeight: 'bold', fontSize: 18 }}>Profil</Text>
+              <Text style={{ color: isLight ? '#06668C' : '#2ef48c', fontWeight: 'bold', fontSize: 18 }}>
+                {i18n.t('profile')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -470,44 +495,48 @@ export default function HomeScreen() {
             {/* CARD PRINCIPALE */}
             <View style={[styles.mainCard, isLight && lightPalette.mainCard]}>
               <Text style={[styles.tripTitle, isLight && lightPalette.tripTitle]}>
-                Bienvenue, {user?.name} 👋
+                {i18n.t('welcome', { name: user?.name })}
               </Text>
               <Text style={[styles.tripSub, isLight && lightPalette.tripSub]}>
-                Ton email : {user?.email}
+                {i18n.t('your_email', { email: user?.email })}
               </Text>
 
               {trip ? (
                 <>
                   <Text style={[styles.tripTitle, isLight && lightPalette.tripTitle]}>
-                    Ton dernier voyage : {trip.destination}
+                    {i18n.t('last_trip', { destination: trip.destination })}
                   </Text>
                   <Text style={[styles.tripSub, isLight && lightPalette.tripSub]}>
-                    Pour {trip.people} personnes, {trip.days} jours
+                    {i18n.t('for_people_days', { people: trip.people, days: trip.days })}
                   </Text>
 
                   {roadTrip ? (
                     <View style={[styles.roadTripBox, isLight && lightPalette.roadTripBox]}>
                       <Text style={[styles.roadTripTitle, isLight && lightPalette.roadTripTitle]}>
-                        Road Trip : {roadTrip.name}
+                        {i18n.t('customize_trip')} : {roadTrip.name}
                       </Text>
                       <Text style={[styles.roadTripDesc, isLight && lightPalette.roadTripDesc]}>
                         {roadTrip.description}
                       </Text>
-                      <Text style={{ color: isLight ? "#4a90e2" : "#bbb", fontWeight: "bold" }}>Étapes :</Text>
+                      <Text style={{ color: isLight ? "#4a90e2" : "#bbb", fontWeight: "bold" }}>
+                        {i18n.t('steps')} :
+                      </Text>
                       {steps?.length > 0 ? steps.map((s, idx) => (
                         <Text key={idx} style={[styles.roadTripStep, isLight && lightPalette.roadTripStep]}>
                           - {s.name}
                         </Text>
-                      )) : null}
+                      )) : (
+                        <Text style={styles.noStep}>{i18n.t('no_steps')}</Text>
+                      )}
                     </View>
                   ) : null}
 
                   <Text style={[styles.sectionTitle, isLight && lightPalette.sectionTitle]}>
-                    Matériel à ramener :
+                    {i18n.t('items')} :
                   </Text>
 
                   <CustomButton
-                    label="Ajouter un matériel"
+                    label={i18n.t('add_item')}
                     icon="plus"
                     iconLib="Feather"
                     color="#3B556D"
@@ -517,18 +546,23 @@ export default function HomeScreen() {
                   />
 
                   <View style={[styles.itemBox, isLight && lightPalette.itemBox]}>
+                    {items.length === 0 && (
+                      <Text style={{ color: isLight ? "#4a90e2" : "#fff", fontStyle: "italic", textAlign: "center" }}>
+                        {i18n.t('no_items')}
+                      </Text>
+                    )}
                     {items.map((item, idx) => (
-                      <View key={idx} style={[styles.itemRow, isLight && lightPalette.itemRow, { alignItems: 'center' }]}>
+                      <View key={idx} style={[styles.itemRow, { alignItems: 'center' }]}>
                         <TextInput
                           style={[styles.input, isLight && lightPalette.input, { flex: 2, marginRight: 4 }]}
-                          placeholder="Nom matériel"
+                          placeholder={i18n.t('items')}
                           placeholderTextColor={isLight ? "#4a90e2" : "#888"}
                           value={item.name}
                           onChangeText={val => handleItemChange(idx, 'name', val)}
                         />
                         <TextInput
                           style={[styles.input, isLight && lightPalette.input, { flex: 1, marginRight: 4 }]}
-                          placeholder="Qté"
+                          placeholder={i18n.t('quantity')}
                           placeholderTextColor={isLight ? "#4a90e2" : "#888"}
                           keyboardType="numeric"
                           value={item.quantity?.toString() || ''}
@@ -536,7 +570,7 @@ export default function HomeScreen() {
                         />
                         <TextInput
                           style={[styles.input, isLight && lightPalette.input, { flex: 1, marginRight: 4 }]}
-                          placeholder="Prix €"
+                          placeholder={i18n.t('price') + " €"}
                           placeholderTextColor={isLight ? "#4a90e2" : "#888"}
                           keyboardType="numeric"
                           value={item.price?.toString() || ''}
@@ -550,16 +584,16 @@ export default function HomeScreen() {
                   </View>
 
                   <Text style={[styles.total, isLight && lightPalette.total]}>
-                    Total : {total.toFixed(2)} €
+                    {i18n.t('total')} : {total.toFixed(2)} €
                   </Text>
 
                   <View style={styles.buttonSpacing}>
                     <CustomButton
-                      label="Sauvegarder le budget"
+                      label={i18n.t('save_budget')}
                       icon="save"
                       iconLib="Feather"
                       color="#5FC2BA"
-                       isLight={isLight}
+                      isLight={isLight}
                       onPress={saveBudget}
                       style={styles.uniformButton}
                     />
@@ -567,11 +601,11 @@ export default function HomeScreen() {
 
                   <View style={styles.buttonSpacing}>
                     <CustomButton
-                      label="Personnaliser le Road Trip"
+                      label={i18n.t('customize_trip')}
                       icon="map"
                       iconLib="Feather"
                       color="#5FC2BA"
-                       isLight={isLight}
+                      isLight={isLight}
                       onPress={() => {
                         if (steps?.length > 0) {
                           router.push({
@@ -579,7 +613,7 @@ export default function HomeScreen() {
                             params: { stopsJson: JSON.stringify(steps) },
                           });
                         } else {
-                          Alert.alert('Aucune étape', 'Ce road trip ne contient aucune étape.');
+                          Alert.alert(i18n.t('error'), i18n.t('no_steps'));
                         }
                       }}
                       style={styles.uniformButton}
@@ -588,7 +622,7 @@ export default function HomeScreen() {
                 </>
               ) : (
                 <Text style={{ color: isLight ? '#223a5e' : '#fff', marginTop: 24, textAlign: 'center' }}>
-                  Aucun voyage planifié.
+                  {i18n.t('no_trip')}
                 </Text>
               )}
             </View>
@@ -597,22 +631,22 @@ export default function HomeScreen() {
 
             <View style={styles.buttonSpacing}>
               <CustomButton
-                label="Planifier un voyage"
+                label={i18n.t('plan_trip')}
                 icon="calendar"
                 iconLib="Feather"
                 color="#5FC2BA"
-                 isLight={isLight}
+                isLight={isLight}
                 onPress={() => router.push('/planifier')}
                 style={styles.uniformButton}
               />
             </View>
 
             <CustomButton
-              label="Se déconnecter"
+              label={i18n.t('logout')}
               icon="log-out"
               iconLib="Feather"
               color="#e74c3c"
-               isLight={isLight}
+              isLight={isLight}
               onPress={async () => {
                 await AsyncStorage.removeItem('token');
                 router.replace('/login');

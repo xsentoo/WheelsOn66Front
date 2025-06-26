@@ -171,7 +171,7 @@ export default function PlanifierVoyage() {
   // Chargement des destinations
   const fetchDestinations = async () => {
     try {
-      const res = await fetch('http://10.92.4.186:5001/api/destinations');
+      const res = await fetch('http://192.168.0.18:5001/api/destinations');
       const data = await res.json();
       setDestinations(data);
     } catch {
@@ -187,7 +187,7 @@ export default function PlanifierVoyage() {
       return;
     }
     try {
-      const res = await fetch(`http://10.92.4.186:5001/api/roadtrips?destination=${encodeURIComponent(destName)}`);
+      const res = await fetch(`http://192.168.0.18:5001/api/roadtrips?destination=${encodeURIComponent(destName)}`);
       const data = await res.json();
       setRoadTrips(data);
       setSelectedRoadTrip('');
@@ -219,7 +219,7 @@ export default function PlanifierVoyage() {
     };
 
     try {
-      const res = await fetch('http://10.92.4.186:5001/api/trips/plan', {
+      const res = await fetch('http://192.168.0.18:5001/api/trips/plan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

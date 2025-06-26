@@ -10,6 +10,7 @@ type CustomButtonProps = {
   color?: string;
   style?: any;
   isLight?: boolean;
+  danger?: boolean;
 };
 
 export default function CustomButton({
@@ -20,6 +21,7 @@ export default function CustomButton({
   color = '#222',
   style = {},
   isLight = false,
+  danger = false,
 }: CustomButtonProps) {
   let IconComponent: any = Feather;
   if (iconLib === 'MaterialIcons') IconComponent = MaterialIcons;
@@ -29,7 +31,7 @@ export default function CustomButton({
   const pillLight = isLight
     ? {
         container: {
-          backgroundColor: '#fff',
+          backgroundColor: danger ? '#e74c3c' : '#fff',
           borderRadius: 999,
           paddingVertical: 8,
           paddingHorizontal: 18,
@@ -44,13 +46,13 @@ export default function CustomButton({
           marginVertical: 8,
         },
         label: {
-          color: '#427AA1',
+          color: danger ? '#fff' : '#427AA1',
           fontWeight: '600' as '600',
           fontSize: 16,
           marginRight: 10,
         },
         iconCircle: {
-          backgroundColor: '#427AA1',
+          backgroundColor: danger ? '#c0392b' : '#427AA1',
           width: 32,
           height: 32,
           borderRadius: 16,
@@ -68,11 +70,26 @@ export default function CustomButton({
 
   return (
     <TouchableOpacity
-      style={[styles.container, pillLight.container, style]}
+      style={[
+        styles.container,
+        pillLight.container,
+        style,
+        { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }
+      ]}
       activeOpacity={0.85}
       onPress={onPress}
     >
-      <Text style={[styles.label, pillLight.label]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          pillLight.label,
+          { textAlign: 'center', flex: 1 }
+        ]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {label}
+      </Text>
       <View style={[styles.iconCircle, pillLight.iconCircle]}>
         <IconComponent name={icon} size={20} color={pillLight.icon} />
       </View>
