@@ -94,7 +94,11 @@ export default function LoginScreen() {
       const data = await res.json();
       console.log('🔵 Réponse serveur :', data);
 
-      if (!res.ok) throw new Error(data.message || 'Erreur');
+      if (!res.ok) {
+        // Affiche le message du backend, par exemple "Compte bloqué"
+        Alert.alert('Erreur', data.message || 'Erreur');
+        return;
+      }
 
       await AsyncStorage.setItem('token', data.token);
       Alert.alert('Connexion réussie ✅');
