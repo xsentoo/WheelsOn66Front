@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ImageBackground, StyleS
 import { router } from 'expo-router';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE } from '../apiBase';
 
 const bg = require('../assets/bg.jpg');
 
@@ -83,9 +84,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    console.log('🟡 handleLogin lancé');
     try {
-      const res = await fetch('http://192.168.0.18:5001/api/auth/login', {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

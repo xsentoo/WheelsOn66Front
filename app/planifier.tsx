@@ -6,6 +6,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useDarkMode from '../hooks/useDarkMode';
+import { API_BASE } from '../apiBase';
 
 const bg = require('../assets/bg.jpg');
 const bgMorning = require('../assets/bgMorning.jpg');
@@ -171,7 +172,7 @@ export default function PlanifierVoyage() {
   // Chargement des destinations
   const fetchDestinations = async () => {
     try {
-      const res = await fetch('http://192.168.0.18:5001/api/destinations');
+      const res = await fetch(`${API_BASE}/destinations`);
       const data = await res.json();
       setDestinations(data);
     } catch {
@@ -187,7 +188,7 @@ export default function PlanifierVoyage() {
       return;
     }
     try {
-      const res = await fetch(`http://192.168.0.18:5001/api/roadtrips?destination=${encodeURIComponent(destName)}`);
+      const res = await fetch(`${API_BASE}/roadtrips?destination=${encodeURIComponent(destName)}`);
       const data = await res.json();
       setRoadTrips(data);
       setSelectedRoadTrip('');
@@ -219,7 +220,7 @@ export default function PlanifierVoyage() {
     };
 
     try {
-      const res = await fetch('http://192.168.0.18:5001/api/trips/plan', {
+      const res = await fetch(`${API_BASE}/trips/plan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

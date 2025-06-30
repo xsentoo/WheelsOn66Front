@@ -10,6 +10,7 @@ import ToggleDarkMode from './component/ToggleDarkMode';
 import CustomButton from './component/CustomButton';
 import useDarkMode from '../hooks/useDarkMode'; // Ajout du hook global
 import i18n, { setAppLanguage } from './i18n';
+import { API_BASE } from '../apiBase';
 
 const bgNight = require('../assets/bg.jpg');
 const bgMorning = require('../assets/bgMorning.jpg');
@@ -286,13 +287,13 @@ export default function HomeScreen() {
     }
 
     try {
-      const userRes = await fetch('http://192.168.0.18:5001/api/home', {
+      const userRes = await fetch(`${API_BASE}/home`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const userData = await userRes.json();
       setUser(userData);
 
-      const tripRes = await fetch('http://192.168.0.18:5001/api/trips/latest', {
+      const tripRes = await fetch(`${API_BASE}/trips/latest`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const tripData = await tripRes.json();
@@ -305,7 +306,7 @@ export default function HomeScreen() {
             setRoadTrip(tripData.trip.roadTripId);
           } else {
             try {
-              const roadTripRes = await fetch(`http://192.168.0.18:5001/api/roadtrips/${tripData.trip.roadTripId}`);
+              const roadTripRes = await fetch(`${API_BASE}/roadtrips/${tripData.trip.roadTripId}`);
               const roadTripData = await roadTripRes.json();
               setRoadTrip(roadTripData);
             } catch (e) {
@@ -317,7 +318,7 @@ export default function HomeScreen() {
         }
 
         if (!tripData.trip.items || tripData.trip.items.length === 0) {
-          const itemsRes = await fetch(`http://192.168.0.18:5001/api/items/${encodeURIComponent(tripData.trip.destination)}`);
+          const itemsRes = await fetch(`${API_BASE}/items/${encodeURIComponent(tripData.trip.destination)}`);
           const itemSuggest = await itemsRes.json();
           const suggested = itemSuggest[0]?.items || [];
           const itemsWithQuantities = suggested.map((item: any) => ({
@@ -328,7 +329,7 @@ export default function HomeScreen() {
 
           setItems(itemsWithQuantities);
 
-          await fetch('http://192.168.0.18:5001/api/trips/latest', {
+          await fetch(`${API_BASE}/trips/latest`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -399,7 +400,7 @@ export default function HomeScreen() {
 
   const saveBudget = async () => {
     const token = await AsyncStorage.getItem('token');
-    await fetch('http://192.168.0.18:5001/api/trips/latest', {
+    await fetch(`${API_BASE}/trips/latest`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

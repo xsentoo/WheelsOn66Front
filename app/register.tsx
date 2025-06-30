@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ImageBackground, StyleS
 import { router } from 'expo-router';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE } from '../apiBase';
 
 const bg = require('../assets/bg.jpg');
 
@@ -85,7 +86,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     try {
-      const res = await fetch('http://192.168.0.18:5001/api/auth/register', {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),

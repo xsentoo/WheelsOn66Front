@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import CustomButton from './component/CustomButton';
 import useDarkMode from '../hooks/useDarkMode';
+import { API_BASE } from '../apiBase';
 
 const bg = require('../assets/bg.jpg');
 const bgMorning = require('../assets/bgMorning.jpg');
@@ -175,10 +176,16 @@ export default function PageProfil() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://192.168.0.18:5001/api/user/me', {
+      const url = `${API_BASE}/user/me`;
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Impossible de charger le profil');
+      console.log('API CALL:', url, 'Status:', res.status);
+      if (!res.ok) {
+        const text = await res.text();
+        console.log('Response:', text);
+        throw new Error('Impossible de charger le profil');
+      }
       const data = await res.json();
       setUser(data.user);
       setEditName(data.user.name);
@@ -199,7 +206,7 @@ export default function PageProfil() {
   const handleEditProfile = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://192.168.0.18:5001/api/user/update', {
+      const res = await fetch(`${API_BASE}/user/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: editName, email: editEmail }),
@@ -220,7 +227,7 @@ export default function PageProfil() {
     }
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://192.168.0.18:5001/api/user/password', {
+      const res = await fetch(`${API_BASE}/user/password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ oldPassword: editPassword.old, newPassword: editPassword.new }),
@@ -242,7 +249,7 @@ export default function PageProfil() {
     setSavingStory(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://192.168.0.18:5001/api/trips/story', {
+      const res = await fetch(`${API_BASE}/trips/story`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ tripId, story: tripStory }),
@@ -271,7 +278,7 @@ export default function PageProfil() {
             setDeletingStoryId(tripId);
             try {
               const token = await AsyncStorage.getItem('token');
-              const res = await fetch('http://192.168.0.18:5001/api/trips/story', {
+              const res = await fetch(`${API_BASE}/trips/story`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ tripId, story: '' }),
@@ -304,7 +311,7 @@ export default function PageProfil() {
             setDeletingTripId(tripId);
             try {
               const token = await AsyncStorage.getItem('token');
-              const res = await fetch(`http://192.168.0.18:5001/api/trips/${tripId}`, {
+              const res = await fetch(`${API_BASE}/trips/${tripId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
               });

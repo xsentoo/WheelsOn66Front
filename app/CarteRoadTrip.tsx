@@ -3,6 +3,7 @@ import { View, Text, Alert, ActivityIndicator, TouchableOpacity, TextInput, Imag
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { API_BASE } from '../apiBase';
 
 export default function CarteRoadTrip() {
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,7 @@ export default function CarteRoadTrip() {
     const fetchTrip = async () => {
       const token = await AsyncStorage.getItem('token');
       try {
-        const res = await fetch('http://192.168.0.18:5001/api/trips/latest', {
+        const res = await fetch(`${API_BASE}/trips/latest`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Impossible de récupérer le road trip');
@@ -101,7 +102,7 @@ export default function CarteRoadTrip() {
       const stopsToSave = stops.map(({ name, latitude, longitude, description }) => ({
         name, latitude, longitude, description,
       }));
-      const res = await fetch('http://192.168.0.18:5001/api/trips/latest/stops', {
+      const res = await fetch(`${API_BASE}/trips/latest/stops`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ stops: stopsToSave }),
