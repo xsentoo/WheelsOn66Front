@@ -95,12 +95,16 @@ const translations = {
   }
 };
 
+// Création de l'instance i18n (Version 4+)
 const i18n = new I18n(translations);
 
-i18n.locale = Localization.locale;
+const locales = Localization.getLocales();
+const lang = locales && locales.length > 0 ? locales[0].languageTag : 'en';
+
+// Configuration
+i18n.locale = lang.startsWith('fr') ? 'fr' : 'en';
 i18n.enableFallback = true;
 
-// Permet de changer la langue globalement
 export const setAppLanguage = (lang: 'fr' | 'en') => {
   i18n.locale = lang;
 };

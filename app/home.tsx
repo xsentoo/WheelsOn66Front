@@ -9,8 +9,10 @@ import { router } from 'expo-router';
 import ToggleDarkMode from './component/ToggleDarkMode';
 import CustomButton from './component/CustomButton';
 import useDarkMode from '../hooks/useDarkMode'; // Ajout du hook global
-import i18n, { setAppLanguage } from './i18n';
+import i18nDefault, { setAppLanguage } from '../utils/i18n';
+const i18n: any = i18nDefault;
 import { API_BASE } from '../apiBase';
+
 
 const bgNight = require('../assets/bg.jpg');
 const bgMorning = require('../assets/bgMorning.jpg');

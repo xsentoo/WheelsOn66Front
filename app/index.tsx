@@ -1,16 +1,31 @@
 // app/index.tsx
 import { useEffect } from 'react';
 import { router } from 'expo-router';
-import { InteractionManager } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, ActivityIndicator } from 'react-native';
+import React from 'react';
 
 export default function Index() {
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      router.replace('/login'); // ou '/home' selon le token
-    });
-
-    return () => task.cancel();
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          router.replace('/home');
+        } else {
+          router.replace('/login');
+        }
+      } catch {
+        router.replace('/login');
+      }
+    };
+    
+    checkAuth();
   }, []);
 
-  return null;
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator size="large" color="#27ae60" />
+    </View>
+  );
 }

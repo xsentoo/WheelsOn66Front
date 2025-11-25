@@ -1,4 +1,4 @@
 import { Platform } from 'react-native';
 
-export const API_BASE = 'http://192.168.0.18:5001/api';
+export const API_BASE = 'http://10.8.17.149:5001/api';
 
